@@ -1,0 +1,40 @@
+To avoid `Scripts not permitted to use method` %groovy.lang.GroovyObject getProperty java.lang.String% for example during pipeline script execution,
+need to approve the following signatures:
+
+to approve:
+method groovy.lang.GroovyObject getProperty java.lang.String
+method hudson.model.ItemGroup getItem java.lang.String
+method hudson.model.Job getAllProperties
+method hudson.model.Job getProperties
+method hudson.model.Job getProperty java.lang.String
+method hudson.model.User getProperty java.lang.Class
+method hudson.tasks.Mailer$UserProperty getAddress
+method java.util.Map replace java.lang.Object java.lang.Object
+method jenkins.model.Jenkins getItemByFullName java.lang.String java.lang.Class
+new hudson.AbortException java.lang.String
+new java.lang.StringBuilder
+staticMethod hudson.console.ModelHyperlinkNote encodeTo java.lang.String java.lang.String
+staticMethod hudson.model.Hudson getInstance
+staticMethod hudson.model.User current
+staticMethod jenkins.model.Jenkins getInstance
+staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods getProperties java.lang.Object
+staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods println java.lang.Object java.lang.Object
+staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods sort java.util.Map groovy.lang.Closure
+staticMethod org.codehaus.groovy.runtime.ScriptBytecodeAdapter unaryMinus java.lang.Object
+
+Signatures which may have introduced a security vulnerability (recommend clearing):
+
+method groovy.lang.GroovyObject getProperty java.lang.String
+staticMethod hudson.model.Hudson getInstance
+staticMethod hudson.model.User current
+staticMethod jenkins.model.Jenkins getInstance
+staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods getProperties java.lang.Object
+
+example of usage:
+node {
+    stage ("stage")
+        {
+            def choise = getProperty('test_choise')
+            echo choise
+        }
+}
