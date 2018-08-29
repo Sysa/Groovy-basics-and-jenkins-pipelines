@@ -1,20 +1,20 @@
 try {
     stage("UNSTABLE"){
-        timeout(time: 20, unit: 'MINUTES') {
+        timeout(time: 15, unit: 'MINUTES') {
         //do something
         echo "UNSTABLE stage"
         currentBuild.result = "UNSTABLE"
         }
     }
     stage("SUCCESS"){
-        timeout(time: 20, unit: 'MINUTES') {
+        timeout(time: 15, unit: 'MINUTES') {
         //do something
         echo "SUCCESS stage"
         currentBuild.result = "SUCCESS"
         }
     }
     stage("FAILURE"){
-        timeout(time: 20, unit: 'MINUTES') {
+        timeout(time: 15, unit: 'MINUTES') {
         //do something
         echo "FAILURE stage"
         //currentBuild.result = "FAILURE" //this will fail all the pipeline
