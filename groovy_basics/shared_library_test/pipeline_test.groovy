@@ -31,6 +31,20 @@ node {
     }
 }
 
+def services = []
+services.add("FirstService")
+services.add("SecondService")
+def list_of_services = ''
+node {
+	//dynamic name of stage
+	services.each{list_of_services += " $it "}
+	stage("install of services $list_of_services"){
+		sizeOfServices = services.size()
+		echo sizeOfServices.toString()
+	}
+}
+
+
 node {
 	stage ("cleaning workspace")
 	{
