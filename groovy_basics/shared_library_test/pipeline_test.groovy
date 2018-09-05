@@ -87,6 +87,15 @@ def pass_string_value (String path_value)
 		echo env.WORKSPACE
 	}
 
+// node {
+	// stage ("sending report"){
+		// mail body: 'text',
+			// from: 'jenkins@.com',
+			// subject: 'subj',
+			// to: 'Alex.Kh@.com'
+	// }
+// }
+
 //this func can be swapped with the `deleteDir()`, but be ahead of this one issue - https://issues.jenkins-ci.org/browse/JENKINS-41805
 def clean_workspace(String destination_folder) {
 	//def PS = "PowerShell.exe -ExecutionPolicy Bypass -Command"
