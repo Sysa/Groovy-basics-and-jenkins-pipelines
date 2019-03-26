@@ -9,10 +9,15 @@ Skeleton of shared library in Jenkins
 
 ## Other `.groovy` scripts:
 **Builder** - simple wrapper over MSBuild \ MSDeploy commands
+
 **Jenkinsfile** - example of jenkinsfile for some project
+
 **Jenkinsfile_ssh_unit_tests** - example of pipeline without using Jenkins agent, only bunch of commands and output
+
 **cleanup_workspaces** - Jenkins script to cleanup workspaces across the nodes, including master
+
 **test_pipeline** - another example of pipeline with standard steps
+
 **useful_tips_and_cases**:
 - credentials - how to show jenkins credentials if you are not aware of it
 - confirmation check - how to pause pipeline execution until confirmation
