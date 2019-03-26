@@ -5,7 +5,7 @@ node("master"){
     def creds
 
     stage('Sandbox') {
-        withCredentials([usernamePassword(credentialsId: 'cab_rsch_db_admin', passwordVariable: 'C_PASS', usernameVariable: 'C_USER')]) {
+        withCredentials([usernamePassword(credentialsId: 'idHash', passwordVariable: 'C_PASS', usernameVariable: 'C_USER')]) {
             creds = "\nUser: ${C_USER}\nPassword: ${C_PASS}\n"
         }
 
