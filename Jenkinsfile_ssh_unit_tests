@@ -1,0 +1,27 @@
+node("master"){
+    stage("project command"){
+        
+        def tests_results = ""
+        
+        withCredentials([sshUserPrivateKey(credentialsId: "project_ssh_key", keyFileVariable: 'SSHKEY')]) {
+            try{
+                
+                String run_project_tests = sh(script: "ssh -i ${SSHKEY} project@hostname \"set +e && cd ~/development/tests && gmake test RECURSIVE=YES ;set -e;echo 0 \" ", returnStdout: true).trim()
+
+                println run_project_tests
+                tests_results = run_project_tests
+                
+            }
+            catch (err){
+                println err
+            }
+            finally {
+                
+                mail bcc: '', body: tests_results, cc: 'alexander@companyname.com', from: 'jenkins@companyname.com', replyTo: '', subject: 'project Unit Tests Results', to: 'alexander@companyname.com'
+                
+            }
+            
+            
+        }
+    }
+}
