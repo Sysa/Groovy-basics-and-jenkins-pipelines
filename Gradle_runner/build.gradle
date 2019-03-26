@@ -1,0 +1,177 @@
+buildscript {
+    repositories {
+        // mavenLocal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath('org.liquibase:liquibase-gradle-plugin:1.2.4') {
+		// classpath('org.liquibase:liquibase-gradle-plugin:2.0.1') {
+            exclude group: "org.liquibase", module: "liquibase-core"
+        }
+        classpath "org.liquibase:liquibase-core:3.5.+"
+		//classpath "org.liquibase:liquibase-core:3.6.+"
+        classpath 'com.microsoft.sqlserver:mssql-jdbc:6.2.1.jre8'
+		//classpath 'com.microsoft.sqlserver:mssql-jdbc:6.2.1.jre8'
+    }
+
+}
+
+apply plugin: 'liquibase'
+apply plugin: 'groovy'
+apply plugin: 'java'
+apply plugin: 'idea'
+
+ext.WAITINVOKE = 20000
+ext.USERNAME   = System.getProperty('user') ?: 'user'
+ext.PASSWORD   = System.getProperty('pass') ?:'pass'
+ext.DB_NAME    = System.getProperty('dbname') ?: 'dbname'
+ext.CONTEXT    = System.getProperty('context') ?:  ''
+ext.SERVER     = System.getProperty('server') ?: 'hostname'
+ext.runListParam = System.getProperty('runListParam') ?: 'update_dbname'
+
+
+println("""
+=============================================================
+Target server :    [${SERVER}]
+Launched user :    [${USERNAME}]
+DATABASE      :    [${DB_NAME}]
+Context       :    [${CONTEXT}]
+Action        :    [${runListParam}]
+=============================================================""")
+
+
+liquibase {
+    activities {
+		
+		update_dbname {
+			changeLogFile 'Project\\base.xml'
+            url "jdbc:sqlserver://${SERVER}:1433;database=${DB_NAME}${AUTH_PARAM}"
+            username USERNAME
+            password PASSWORD
+            logLevel 'info'
+			contexts CONTEXT
+            changeLogParameters([ CUSTOM_DBNAME: DB_NAME])
+		}
+		
+    }
+    runList = "${runListParam}"
+}
+
+
+import groovy.sql.Sql
+import java.sql.*
+import java.util.Date
+import java.text.SimpleDateFormat
+
+
+class DBInvoke extends DefaultTask {
+
+    String query
+    String jdbcUsername
+    String jdbcPassword
+    String dbServer
+    String dbName
+	String dbLogicalName
+    String jdbcDriver = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
+    boolean windowsAuth = false
+
+    @TaskAction
+    void execSql() {
+        String authParam = windowsAuth ? ";integratedSecurity=true" : ""
+		String jdbcUrl = "jdbc:sqlserver://${dbServer}:1433${authParam}"
+        println("URL: ${jdbcUrl}")
+        println("DATABASE NAME: ${dbName}")
+        println(query)
+        def driver = Class.forName(jdbcDriver).newInstance() as Driver
+        def props = new Properties()
+        //props.setProperty("databaseName", dbName)
+        props.setProperty("user", jdbcUsername)
+        props.setProperty("password", jdbcPassword)
+        def conn = driver.connect(jdbcUrl, props)
+        def sql = new Sql(conn)
+        try {
+            sql.execute(query)
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            sql.close()
+            conn.close()
+        }
+    }
+}
+
+
+task drop(type: DBInvoke) {
+    dbName = DB_NAME
+    dbServer = SERVER
+    jdbcUsername = USERNAME
+    jdbcPassword = PASSWORD
+    query = "USE [master]; IF EXISTS (SELECT name FROM master.dbo.sysdatabases WHERE name = N'${dbName}') " +
+            "BEGIN EXEC msdb.dbo.sp_delete_database_backuphistory @database_name = N'${dbName}'; " +
+            "ALTER DATABASE [${dbName}] SET  SINGLE_USER WITH ROLLBACK IMMEDIATE; " +
+            "DROP DATABASE [${dbName}];END;"
+}
+
+task create(type: DBInvoke) {
+    dbName = "master"
+    dbServer = SERVER
+    jdbcUsername = USERNAME
+    jdbcPassword = PASSWORD
+    query = "CREATE DATABASE [${DB_NAME}];"
+}
+
+task restore(type: DBInvoke){
+    dbName = DB_NAME
+	dbLogicalName = dbName //for backup purpose 
+    dbServer = SERVER
+    jdbcUsername = USERNAME
+    jdbcPassword = PASSWORD
+    def newDBName = System.getProperty('newDBName') ?:  'dbname'
+    def backupName = System.getProperty('backupName') ?:  DB_NAME
+	def backupFile = System.getProperty('backupPath') ?:  "C:\\Backups\\${backupName}.bak"
+
+    doFirst{
+        println("=============================================================")
+        println("Restore with params:\n" +
+                "backupPath         :    [${backupFile}]\n" +
+                "newDBName          :    [${newDBName}]")
+        println("=============================================================")
+    }
+
+	query = "If(db_id(N'${newDBName}') IS NULL) CREATE DATABASE [${newDBName}];" +
+		"DECLARE @mdfFile VARCHAR(MAX);" +
+		"DECLARE @ldfFile VARCHAR(MAX);" +
+		"SELECT @mdfFile = physical_name FROM sys.master_files WHERE database_id = DB_ID('${newDBName}') AND file_id = 1;" +
+		"SELECT @ldfFile = physical_name FROM sys.master_files WHERE database_id = DB_ID('${newDBName}') AND file_id = 2;" +
+		"ALTER DATABASE ${newDBName} SET SINGLE_USER WITH ROLLBACK IMMEDIATE; " +
+		"RESTORE DATABASE ${newDBName} FROM DISK = '${backupFile}' WITH REPLACE,RECOVERY," +
+		"MOVE '${dbLogicalName}' TO @mdfFile," +
+		"MOVE '${dbLogicalName}_Log' TO @ldfFile;" +
+		"ALTER DATABASE ${newDBName} SET MULTI_USER"
+}
+
+task backup(type: DBInvoke){
+    dbName = DB_NAME
+    dbServer = SERVER
+    jdbcUsername = USERNAME
+    jdbcPassword = PASSWORD
+    def backupName = System.getProperty('backupName') ?:  DB_NAME
+    def backupPath = System.getProperty('backupPath') ?:  "C:\\Backups"
+    def now = new Date()
+    def sdf = new SimpleDateFormat("yyyyMMdd_HHmmss")
+    def postfix = sdf.format(now.getTime())
+
+    doFirst{
+        println("=============================================================")
+        println("Backup with params:\n" +
+                "backupPath        :    [${backupPath}]\n" +
+                "backupName        :    [${backupName}]\n" +
+                "prefix            :    [${postfix}]\n" +
+                "dbName            :    [${DB_NAME}]")
+        println("=============================================================")
+    }
+
+    query = "BACKUP DATABASE [${DB_NAME}] " +
+            "TO DISK = N'${backupPath}\\${backupName}_${postfix}.bak' WITH NOFORMAT, NOINIT, " +
+            "NAME = N'${DB_NAME}-Full Database Backup', SKIP, NOREWIND, NOUNLOAD, STATS = 10"
+}
